@@ -3,7 +3,7 @@
   "info": [
     [
       "Role",
-      "Software Engineer"
+      "Software Engineer | IT Engineer"
     ],
     [
       "Company",
@@ -11,32 +11,32 @@
     ],
     [
       "Focus",
-      "Web, software and IT systems"
+      "web apps, software systems, IT solutions"
     ],
     [
       "Fields",
-      "Video, robotics, hardware"
+      "video systems, robotics, hardware integration"
     ],
     [
       "AI",
-      "LLMs, agents, RAG, MCP"
+      "LLMs, AI agents, RAG, MCP, computer vision"
     ],
     [],
     [
       "Languages",
-      "Python, TS, JS, Dart, SQL"
+      "Python, TypeScript, JavaScript, Dart, SQL"
     ],
     [
       "Apps",
-      "React, Next.js, Flutter"
+      "React, Next.js, Node.js, Flutter, React Native"
     ],
     [
       "DevOps",
-      "Docker, K8s, Terraform"
+      "Docker, Kubernetes, Terraform, Ansible, ArgoCD"
     ],
     [
       "Tools",
-      "Git, Langfuse, Grafana, NATS"
+      "Git, Langfuse, Grafana + Loki, NATS, Redis"
     ]
   ],
   "contact": [
