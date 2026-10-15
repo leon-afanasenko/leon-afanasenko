@@ -95,7 +95,8 @@ def to_svg(art, rows, dark):
             texts.append(put(text_x + (len(name) + 1) * cw, y, val, fg))
         elif row:
             texts.append(put(text_x, y, row, fg, ' font-weight="bold"'))
-    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w:.0f} {art_h:.0f}" width="{w:.0f}" height="{art_h:.0f}" role="img" aria-label="Profile">'
+    shown_w = min(w, 860)   # GitHub shows an image at its own size, and its column is about 880 wide: stay under that
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w:.0f} {art_h:.0f}" width="{shown_w:.0f}" height="{art_h * shown_w / w:.0f}" role="img" aria-label="Profile">'
             f'<g fill="{fg}">{"".join(dots)}</g>'
             f'<g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="{font}">{"".join(texts)}</g></svg>\n')
 
@@ -113,5 +114,5 @@ if __name__ == "__main__":
     (HERE / "profile-dark.svg").write_text(to_svg(art, rows, True))
     (HERE / "profile-light.svg").write_text(to_svg(art, rows, False))
     tag = hashlib.md5(((HERE / "profile-dark.svg").read_text() + (HERE / "profile-light.svg").read_text()).encode()).hexdigest()[:8]   # a new address for each version, so GitHub never shows an old cached picture
-    (HERE / "README.md").write_text(f'<picture>\n  <source media="(prefers-color-scheme: dark)" srcset="profile-dark.svg?v={tag}">\n  <img alt="Profile" src="profile-light.svg?v={tag}" width="100%">\n</picture>\n')
+    (HERE / "README.md").write_text(f'<picture>\n  <source media="(prefers-color-scheme: dark)" srcset="profile-dark.svg?v={tag}">\n  <img alt="Profile" src="profile-light.svg?v={tag}">\n</picture>\n')
     print("wrote profile-dark.svg, profile-light.svg and README.md")
