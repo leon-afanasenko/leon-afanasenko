@@ -2,7 +2,7 @@
 Usage: python3 make_profile.py photo.jpg [--crop x0,y0,x1,y1] [--width 60] [--height 31] [--threshold 130]
 Needs Pillow and ascii-image-converter (https://github.com/TheZoraiz/ascii-image-converter) on the PATH.
 Reads profile.json, writes profile-dark.svg, profile-light.svg and README.md."""
-import json, math, subprocess, sys
+import hashlib, json, math, subprocess, sys
 from html import escape
 from pathlib import Path
 from PIL import Image, ImageFilter, ImageOps
@@ -64,7 +64,7 @@ def facts(profile):
 def to_svg(art, rows, dark):
     """The portrait as round dots and the facts as text in one scalable picture, so GitHub never needs a horizontal scroll."""
     fg, dim, key = ("#c9d1d9", "#8b949e", "#ffa657") if dark else ("#24292f", "#57606a", "#bc4c00")
-    step, radius = 4.2, 1.7   # every braille cell is 2 dots wide and 4 high
+    step, radius = 3.7, 1.45   # every braille cell is 2 dots wide and 4 high
     cols = max((len(a) for a in art), default=0)
     dots = []
     for r, line in enumerate(art):
@@ -75,13 +75,13 @@ def to_svg(art, rows, dark):
                     if m & b:
                         dots.append(f'<circle cx="{(c * 2 + dx) * step + 4:.1f}" cy="{(r * 4 + dy) * step + 4:.1f}" r="{radius}"/>')
     art_w, art_h = cols * 2 * step + 8, len(art) * 4 * step + 8
-    text_x, line_h, font = art_w + 36, 27, 18
+    text_x, line_h, font = art_w + 30, 25, 16
     top = (art_h - len(rows) * line_h) / 2 + font
     texts = []
     for k, row in enumerate(rows):
         y = top + k * line_h
         if row == "-":
-            texts.append(f'<line x1="{text_x}" y1="{y - 7:.0f}" x2="{text_x + 500}" y2="{y - 7:.0f}" stroke="{dim}"/>')
+            texts.append(f'<line x1="{text_x}" y1="{y - 7:.0f}" x2="{text_x + max((len(r) for r in rows), default=0) * font * 0.62:.0f}" y2="{y - 7:.0f}" stroke="{dim}"/>')
         elif row == "Contact":
             texts.append(f'<text x="{text_x}" y="{y:.0f}" fill="{dim}" font-weight="bold">Contact</text>')
         elif ":" in row and k > 1:
@@ -89,7 +89,8 @@ def to_svg(art, rows, dark):
             texts.append(f'<text x="{text_x}" y="{y:.0f}" xml:space="preserve"><tspan fill="{key}" font-weight="bold">{escape(name)}:</tspan><tspan fill="{fg}">{escape(val)}</tspan></text>')
         elif row:
             texts.append(f'<text x="{text_x}" y="{y:.0f}" fill="{fg}" font-weight="bold">{escape(row)}</text>')
-    w = text_x + 560
+    longest = max((len(r) for r in rows), default=0)
+    w = text_x + longest * font * 0.62 + 24   # the width follows the longest line, so nothing is ever cut
     return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w:.0f} {art_h:.0f}" width="{w:.0f}" height="{art_h:.0f}" role="img" aria-label="Profile">'
             f'<g fill="{fg}">{"".join(dots)}</g>'
             f'<g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="{font}">{"".join(texts)}</g></svg>\n')
@@ -107,5 +108,6 @@ if __name__ == "__main__":
     rows = facts(profile)
     (HERE / "profile-dark.svg").write_text(to_svg(art, rows, True))
     (HERE / "profile-light.svg").write_text(to_svg(art, rows, False))
-    (HERE / "README.md").write_text('<picture>\n  <source media="(prefers-color-scheme: dark)" srcset="profile-dark.svg">\n  <img alt="Profile" src="profile-light.svg" width="100%">\n</picture>\n')
+    tag = hashlib.md5(((HERE / "profile-dark.svg").read_text() + (HERE / "profile-light.svg").read_text()).encode()).hexdigest()[:8]   # a new address for each version, so GitHub never shows an old cached picture
+    (HERE / "README.md").write_text(f'<picture>\n  <source media="(prefers-color-scheme: dark)" srcset="profile-dark.svg?v={tag}">\n  <img alt="Profile" src="profile-light.svg?v={tag}" width="100%">\n</picture>\n')
     print("wrote profile-dark.svg, profile-light.svg and README.md")
