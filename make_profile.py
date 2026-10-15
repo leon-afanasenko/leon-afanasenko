@@ -76,21 +76,25 @@ def to_svg(art, rows, dark):
                         dots.append(f'<circle cx="{(c * 2 + dx) * step + 4:.1f}" cy="{(r * 4 + dy) * step + 4:.1f}" r="{radius}"/>')
     art_w, art_h = cols * 2 * step + 8, len(art) * 4 * step + 8
     text_x, line_h, font = art_w + 30, 25, 16
+    cw = font * 0.6   # every line gets a fixed length (textLength), so no font can make it wider than the picture
     top = (art_h - len(rows) * line_h) / 2 + font
+    longest = max((len(r) for r in rows), default=0)
+    w = text_x + longest * cw + 20
+    key_w = max((len(r.split(":", 1)[0]) + 1 for r in rows[2:] if ":" in r), default=0)
     texts = []
+    put = lambda x, y, s, fill, bold="": f'<text x="{x:.1f}" y="{y:.0f}" fill="{fill}" textLength="{len(s) * cw:.1f}" lengthAdjust="spacingAndGlyphs"{bold} xml:space="preserve">{escape(s)}</text>'
     for k, row in enumerate(rows):
         y = top + k * line_h
         if row == "-":
-            texts.append(f'<line x1="{text_x}" y1="{y - 7:.0f}" x2="{text_x + max((len(r) for r in rows), default=0) * font * 0.62:.0f}" y2="{y - 7:.0f}" stroke="{dim}"/>')
+            texts.append(f'<line x1="{text_x}" y1="{y - 7:.0f}" x2="{text_x + longest * cw:.0f}" y2="{y - 7:.0f}" stroke="{dim}"/>')
         elif row == "Contact":
-            texts.append(f'<text x="{text_x}" y="{y:.0f}" fill="{dim}" font-weight="bold">Contact</text>')
+            texts.append(put(text_x, y, row, dim, ' font-weight="bold"'))
         elif ":" in row and k > 1:
             name, val = row.split(":", 1)
-            texts.append(f'<text x="{text_x}" y="{y:.0f}" xml:space="preserve"><tspan fill="{key}" font-weight="bold">{escape(name)}:</tspan><tspan fill="{fg}">{escape(val)}</tspan></text>')
+            texts.append(put(text_x, y, name + ":", key, ' font-weight="bold"'))
+            texts.append(put(text_x + (len(name) + 1) * cw, y, val, fg))
         elif row:
-            texts.append(f'<text x="{text_x}" y="{y:.0f}" fill="{fg}" font-weight="bold">{escape(row)}</text>')
-    longest = max((len(r) for r in rows), default=0)
-    w = text_x + longest * font * 0.62 + 24   # the width follows the longest line, so nothing is ever cut
+            texts.append(put(text_x, y, row, fg, ' font-weight="bold"'))
     return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w:.0f} {art_h:.0f}" width="{w:.0f}" height="{art_h:.0f}" role="img" aria-label="Profile">'
             f'<g fill="{fg}">{"".join(dots)}</g>'
             f'<g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="{font}">{"".join(texts)}</g></svg>\n')
