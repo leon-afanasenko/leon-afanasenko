@@ -1,11 +1,14 @@
-"""Builds a neofetch-style profile README: an ASCII portrait on the left, your facts on the right.
-Usage: python3 make_profile.py photo.jpg [--crop x0,y0,x1,y1] [--width 46] [--height 30] [--threshold 130]
-Needs Pillow and ascii-image-converter (https://github.com/TheZoraiz/ascii-image-converter) on the PATH. Reads profile.json, writes README.md."""
+"""Builds a neofetch-style profile: a dotted portrait on the left, your facts on the right, as one picture that scales to the page.
+Usage: python3 make_profile.py photo.jpg [--crop x0,y0,x1,y1] [--width 60] [--height 31] [--threshold 130]
+Needs Pillow and ascii-image-converter (https://github.com/TheZoraiz/ascii-image-converter) on the PATH.
+Reads profile.json, writes profile-dark.svg, profile-light.svg and README.md."""
 import json, math, subprocess, sys
+from html import escape
 from pathlib import Path
 from PIL import Image, ImageFilter, ImageOps
 
 HERE = Path(__file__).resolve().parent
+BRAILLE = {(0, 0): 1, (0, 1): 2, (0, 2): 4, (1, 0): 8, (1, 1): 16, (1, 2): 32, (0, 3): 64, (1, 3): 128}
 
 
 def portrait(photo, width, height, threshold, crop):
@@ -23,19 +26,20 @@ def portrait(photo, width, height, threshold, crop):
 
 
 def add_marks(art, marks, crop, width, height):
-    """Small accents (an earring, glasses...) drawn as extra braille dots. x and y are pixels of the original photo; crop is the box given with --crop."""
+    """Small accents (an earring, glasses...) as extra dots. x and y are pixels of the original photo; crop is the box given with --crop."""
     if not marks or not crop:
         return art
-    cols, dots_w, dots_h = width, width * 2, height * 4
-    rows = [list(r.ljust(cols, "\u2800")) for r in art]
-    bit = {(0, 0): 1, (0, 1): 2, (0, 2): 4, (1, 0): 8, (1, 1): 16, (1, 2): 32, (0, 3): 64, (1, 3): 128}
-    fx = lambda X: (X - crop[0]) * dots_w / (crop[2] - crop[0]); fy = lambda Y: (Y - crop[1]) * dots_h / (crop[3] - crop[1])
+    dots_w, dots_h = width * 2, height * 4
+    rows = [list(r.ljust(width, "⠀")) for r in art]
+    fx = lambda X: (X - crop[0]) * dots_w / (crop[2] - crop[0])
+    fy = lambda Y: (Y - crop[1]) * dots_h / (crop[3] - crop[1])
 
     def dot(x, y):
         x, y = int(round(x)), int(round(y))
         if 0 <= x < dots_w and 0 <= y < dots_h and y // 4 < len(rows):
-            cell = rows[y // 4][x // 2]; base = ord(cell) - 0x2800 if "\u2800" <= cell <= "\u28ff" else 0
-            rows[y // 4][x // 2] = chr(0x2800 + (base | bit[(x % 2, y % 4)]))
+            cell = rows[y // 4][x // 2]
+            base = ord(cell) - 0x2800 if "⠀" <= cell <= "⣿" else 0
+            rows[y // 4][x // 2] = chr(0x2800 + (base | BRAILLE[(x % 2, y % 4)]))
     for m in marks:
         cx, cy = fx(m["x"]), fy(m["y"])
         if m["shape"] == "ring":
@@ -45,22 +49,50 @@ def add_marks(art, marks, crop, width, height):
             for t in range(-2, 3):
                 dot(cx + t, cy - 2 + abs(t)); dot(cx + t, cy + 2 - abs(t))
             dot(cx, cy)
-    return ["".join(r).rstrip("\u2800") for r in rows]
+    return ["".join(r).rstrip("⠀") for r in rows]
 
 
 def facts(profile):
     key_w = max(len(k[0]) for k in profile["info"] + profile["contact"] if k) + 2
-    rows = [profile["handle"], "-" * 34]
+    rows = [profile["handle"], "-"]
     rows += [(k[0] + ":").ljust(key_w) + k[1] if k else "" for k in profile["info"]]
-    rows += ["", "Contact " + "-" * 26]
+    rows += ["", "Contact"]
     rows += [(k[0] + ":").ljust(key_w) + k[1] for k in profile["contact"]]
     return rows
 
 
-def merge(art, rows):
-    width = max((len(a) for a in art), default=0); n = max(len(art), len(rows)); top = (n - len(rows)) // 2
-    art = art + [""] * (n - len(art)); rows = [""] * top + rows + [""] * (n - len(rows) - top)
-    return "\n".join((a.ljust(width) + "   " + r).rstrip() for a, r in zip(art, rows))
+def to_svg(art, rows, dark):
+    """The portrait as round dots and the facts as text in one scalable picture, so GitHub never needs a horizontal scroll."""
+    fg, dim, key = ("#c9d1d9", "#8b949e", "#ffa657") if dark else ("#24292f", "#57606a", "#bc4c00")
+    step, radius = 4.2, 1.7   # every braille cell is 2 dots wide and 4 high
+    cols = max((len(a) for a in art), default=0)
+    dots = []
+    for r, line in enumerate(art):
+        for c, ch in enumerate(line):
+            m = ord(ch) - 0x2800
+            if 0 < m <= 0xFF:
+                for (dx, dy), b in BRAILLE.items():
+                    if m & b:
+                        dots.append(f'<circle cx="{(c * 2 + dx) * step + 4:.1f}" cy="{(r * 4 + dy) * step + 4:.1f}" r="{radius}"/>')
+    art_w, art_h = cols * 2 * step + 8, len(art) * 4 * step + 8
+    text_x, line_h, font = art_w + 36, 27, 18
+    top = (art_h - len(rows) * line_h) / 2 + font
+    texts = []
+    for k, row in enumerate(rows):
+        y = top + k * line_h
+        if row == "-":
+            texts.append(f'<line x1="{text_x}" y1="{y - 7:.0f}" x2="{text_x + 500}" y2="{y - 7:.0f}" stroke="{dim}"/>')
+        elif row == "Contact":
+            texts.append(f'<text x="{text_x}" y="{y:.0f}" fill="{dim}" font-weight="bold">Contact</text>')
+        elif ":" in row and k > 1:
+            name, val = row.split(":", 1)
+            texts.append(f'<text x="{text_x}" y="{y:.0f}" xml:space="preserve"><tspan fill="{key}" font-weight="bold">{escape(name)}:</tspan><tspan fill="{fg}">{escape(val)}</tspan></text>')
+        elif row:
+            texts.append(f'<text x="{text_x}" y="{y:.0f}" fill="{fg}" font-weight="bold">{escape(row)}</text>')
+    w = text_x + 560
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w:.0f} {art_h:.0f}" width="{w:.0f}" height="{art_h:.0f}" role="img" aria-label="Profile">'
+            f'<g fill="{fg}">{"".join(dots)}</g>'
+            f'<g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="{font}">{"".join(texts)}</g></svg>\n')
 
 
 if __name__ == "__main__":
@@ -70,6 +102,10 @@ if __name__ == "__main__":
     num = lambda flag, default: int(args[args.index(flag) + 1]) if flag in args else default
     crop = tuple(int(v) for v in args[args.index("--crop") + 1].split(",")) if "--crop" in args else None
     profile = json.loads((HERE / "profile.json").read_text())
-    out = "```\n" + merge(add_marks(portrait(args[0], num("--width", 46), num("--height", 30), num("--threshold", 130), crop), profile.get("marks"), crop, num("--width", 46), num("--height", 30)), facts(profile)) + "\n```\n"
-    (HERE / "README.md").write_text(out)
-    print(out)
+    width, height = num("--width", 60), num("--height", 31)
+    art = add_marks(portrait(args[0], width, height, num("--threshold", 130), crop), profile.get("marks"), crop, width, height)
+    rows = facts(profile)
+    (HERE / "profile-dark.svg").write_text(to_svg(art, rows, True))
+    (HERE / "profile-light.svg").write_text(to_svg(art, rows, False))
+    (HERE / "README.md").write_text('<picture>\n  <source media="(prefers-color-scheme: dark)" srcset="profile-dark.svg">\n  <img alt="Profile" src="profile-light.svg" width="100%">\n</picture>\n')
+    print("wrote profile-dark.svg, profile-light.svg and README.md")
