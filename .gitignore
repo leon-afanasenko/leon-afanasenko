@@ -1,0 +1,6 @@
+# photos stay local
+*.jpg
+*.jpeg
+*.png
+*.heic
+*.webp
