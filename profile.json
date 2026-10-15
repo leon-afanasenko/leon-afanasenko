@@ -1,19 +1,64 @@
 {
   "handle": "leonid@afanasenko",
   "info": [
-    ["Role", "Software Engineer | IT Engineer"],
-    ["Company", "Synergeticon GmbH"],
-    ["Focus", "web apps, software systems, IT solutions"],
-    ["Fields", "video systems, robotics, hardware integration"],
-    ["AI", "LLMs, AI agents, RAG, MCP, computer vision"],
+    [
+      "Role",
+      "Software Engineer"
+    ],
+    [
+      "Company",
+      "Synergeticon GmbH"
+    ],
+    [
+      "Focus",
+      "Web, software and IT systems"
+    ],
+    [
+      "Fields",
+      "Video, robotics, hardware"
+    ],
+    [
+      "AI",
+      "LLMs, agents, RAG, MCP"
+    ],
     [],
-    ["Languages", "Python, TypeScript, JavaScript, Dart, SQL"],
-    ["Apps", "React, Next.js, Node.js, Flutter, React Native"],
-    ["DevOps", "Docker, Kubernetes, Terraform, Ansible, ArgoCD"],
-    ["Tools", "Git, Langfuse, Grafana + Loki, NATS, Redis"]
+    [
+      "Languages",
+      "Python, TS, JS, Dart, SQL"
+    ],
+    [
+      "Apps",
+      "React, Next.js, Flutter"
+    ],
+    [
+      "DevOps",
+      "Docker, K8s, Terraform"
+    ],
+    [
+      "Tools",
+      "Git, Langfuse, Grafana, NATS"
+    ]
   ],
   "contact": [
-    ["LinkedIn", "Leonid Afanasenko"],
-    ["GitHub", "leon-afanasenko"]
+    [
+      "LinkedIn",
+      "Leonid Afanasenko"
+    ],
+    [
+      "GitHub",
+      "leon-afanasenko"
+    ]
+  ],
+  "marks": [
+    {
+      "shape": "ring",
+      "x": 600,
+      "y": 577
+    },
+    {
+      "shape": "diamond",
+      "x": 604,
+      "y": 603
+    }
   ]
 }
